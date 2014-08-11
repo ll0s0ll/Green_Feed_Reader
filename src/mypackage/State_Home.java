@@ -417,44 +417,46 @@ public class State_Home implements State_Base
 				{
 					public void run()
 					{
-						_screen.showActivityIndicator();
-						
-						if(showfeeds) {
-							// 各カテゴリごとにフィードを削除する
-							for(Enumeration e = categories.keys(); e.hasMoreElements();)
-							{
-								String category_name = (String) e.nextElement();
+						synchronized (Lock.lock)
+						{
+							_screen.showActivityIndicator();
+							
+							if(showfeeds) {
+								// 各カテゴリごとにフィードを削除する
+								for(Enumeration e = categories.keys(); e.hasMoreElements();)
+								{
+									String category_name = (String) e.nextElement();
+									
+									// Globalカテゴリは飛ばす
+									if(category_name.equals("Global")) { continue; }
+									
+									((Category)categories.get(category_name)).doDeleteAllFeedsFromRichList();
+								}
 								
-								// Globalカテゴリは飛ばす
-								if(category_name.equals("Global")) { continue; }
+								// フラグ更新
+								showfeeds = false;
 								
-								((Category)categories.get(category_name)).doDeleteAllFeedsFromRichList();
+							} else {
+								// 各カテゴリごとにフィードを追加する
+								for(Enumeration e = categories.keys(); e.hasMoreElements();)
+								{
+									String category_name = (String) e.nextElement();
+									
+									// Globalカテゴリは飛ばす
+									if(category_name.equals("Global")) { continue; }
+									
+									((Category)categories.get(category_name)).doAddCategoryRow();
+								}
+								
+								// unread、updatedを更新
+								refreshUnreadCounts();
+								
+								// フラグ更新
+								showfeeds = true;
 							}
 							
-							// フラグ更新
-							showfeeds = false;
-							
-						} else {
-							// 各カテゴリごとにフィードを追加する
-							for(Enumeration e = categories.keys(); e.hasMoreElements();)
-							{
-								String category_name = (String) e.nextElement();
-								
-								// Globalカテゴリは飛ばす
-								if(category_name.equals("Global")) { continue; }
-								
-								((Category)categories.get(category_name)).doAddCategoryRow();
-							}
-							
-							// unread、updatedを更新
-							refreshUnreadCounts();
-							
-							// フラグ更新
-							showfeeds = true;
+							_screen.deleteActivityIndicator();
 						}
-						
-						_screen.deleteActivityIndicator();
-						
 					} //run()
 				}.start(); //Thread()
 			} //execute()
@@ -870,5 +872,11 @@ public class State_Home implements State_Base
 			return out;
 		}//showStreamScreenCMD()
 	}//Global
+	
+	
+	private static class Lock
+	{
+		static Object lock = new Object();
+	}
 	
 }
