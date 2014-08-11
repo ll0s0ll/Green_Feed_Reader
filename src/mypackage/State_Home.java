@@ -53,11 +53,14 @@ public class State_Home implements State_Base
 	private Hashtable subscriptions_index = null;
 	private Hashtable categories = null;
 
+	private boolean showfeeds;
 	
 	public State_Home(FeedlyClient feedlyclient)
 	{
 		this._feedlyclient = feedlyclient;
 		this._feedlyapi = feedlyclient.getFeedlyAPI();
+		
+		this.showfeeds = true;
 		
 		//
 		// スクリーントランジションを設定
@@ -139,16 +142,20 @@ public class State_Home implements State_Base
 							// Uncategorizedカテゴリは飛ばして、後で追加する。
 							if(category_name.equals("uncategorized")) { continue; }
 							
-							((Category)categories.get(category_name)).makeIndex();
-							((Category)categories.get(category_name)).doAddCategoryRow();
+							Category tmp_category = (Category)categories.get(category_name);
+							tmp_category.makeIndex();
+							tmp_category.doAddCategoryRichList();
+							tmp_category.doAddCategoryRow();
 						}
 						
 						// 購読中のストリームがない場合はリターン
 						if(subscriptions.length() == 0) { return; };
 							
 						// Uncategorizedカテゴリのエントリーを追加する。
-						((Category)categories.get("uncategorized")).makeIndex();
-						((Category)categories.get("uncategorized")).doAddCategoryRow();
+						Category tmp_uncategorized = (Category)categories.get("uncategorized");
+						tmp_uncategorized.makeIndex();
+						tmp_uncategorized.doAddCategoryRichList();
+						tmp_uncategorized.doAddCategoryRow();
 						
 						//
 						// unread、updatedを更新。
@@ -400,6 +407,62 @@ public class State_Home implements State_Base
 	} //CMD_reload()
 	
 	
+	public Command CMD_toggleShowAndHideFeeds()
+	{
+		Command out = new Command(new CommandHandler() 
+		{
+			public void execute(ReadOnlyCommandMetadata metadata, Object context)
+			{
+				new Thread()
+				{
+					public void run()
+					{
+						_screen.showActivityIndicator();
+						
+						if(showfeeds) {
+							// 各カテゴリごとにフィードを削除する
+							for(Enumeration e = categories.keys(); e.hasMoreElements();)
+							{
+								String category_name = (String) e.nextElement();
+								
+								// Globalカテゴリは飛ばす
+								if(category_name.equals("Global")) { continue; }
+								
+								((Category)categories.get(category_name)).doDeleteAllFeedsFromRichList();
+							}
+							
+							// フラグ更新
+							showfeeds = false;
+							
+						} else {
+							// 各カテゴリごとにフィードを追加する
+							for(Enumeration e = categories.keys(); e.hasMoreElements();)
+							{
+								String category_name = (String) e.nextElement();
+								
+								// Globalカテゴリは飛ばす
+								if(category_name.equals("Global")) { continue; }
+								
+								((Category)categories.get(category_name)).doAddCategoryRow();
+							}
+							
+							// unread、updatedを更新
+							refreshUnreadCounts();
+							
+							// フラグ更新
+							showfeeds = true;
+						}
+						
+						_screen.deleteActivityIndicator();
+						
+					} //run()
+				}.start(); //Thread()
+			} //execute()
+		});
+		return out;
+	} //CMD_toggleShowAndHideFeeds()
+	
+	
 	public void refreshUnreadCounts()
 	{
 		try {
@@ -551,13 +614,44 @@ public class State_Home implements State_Base
 		}
 		
 		
-		public void doAddCategoryRow()
+		public void doDeleteAllFeedsFromRichList()
+		{
+			// リッチリストに追加されている要素数を取得
+			int num_of_rows = _list.getModel().getNumberOfRows();
+			
+			// カテゴリ名の分を減らす
+			num_of_rows--;
+			
+			// 削除
+			synchronized (UiApplication.getEventLock()) 
+			{
+				for(int i=0; i<num_of_rows; i++)
+				{
+					// 1行目はカテゴリ名なので、毎回2行目を削除する。
+					_list.remove(1);
+				}
+			}
+		}
+		
+		
+		public void doAddCategoryRichList()
 		{
 			synchronized (UiApplication.getEventLock()) 
 			{
 				_list = _screen.addCategory();
 				_list.setCommand(showStreamScreenCMD());
 				_screen.addCategoryHeader(_list, this.category_name);
+			}
+		}
+		
+		
+		public void doAddCategoryRow()
+		{
+			synchronized (UiApplication.getEventLock()) 
+			{
+				//_list = _screen.addCategory();
+				//_list.setCommand(showStreamScreenCMD());
+				//_screen.addCategoryHeader(_list, this.category_name);
 			}
 			
 			
@@ -691,7 +785,7 @@ public class State_Home implements State_Base
 		}
 		
 		
-		public void doAddCategoryRow()
+		public void doAddCategoryRichList()
 		{
 			synchronized (UiApplication.getEventLock()) 
 			{
@@ -699,7 +793,11 @@ public class State_Home implements State_Base
 				super._list.setCommand(showStreamScreenCMD());
 				_screen.addCategoryHeader(super._list, super.category_name);
 			}
-			
+		}
+		
+		
+		public void doAddCategoryRow()
+		{
 			//
 			// ALL
 			//
