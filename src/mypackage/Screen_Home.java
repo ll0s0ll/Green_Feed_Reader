@@ -69,7 +69,7 @@ public class Screen_Home extends MainScreen
 		// メニューアイテムを作成
 		//
 		// ステイト変更コマンド
-		/*
+		
 		MenuItem all = new MenuItem(new StringProvider("ALL") , 0x130010, 0);
 		all.setCommand(_state.CMD_changeStateToAll());
 		addMenuItem(all);
@@ -77,7 +77,7 @@ public class Screen_Home extends MainScreen
 		MenuItem saved = new MenuItem(new StringProvider("Saved") , 0x130011, 0);
 		saved.setCommand(_state.CMD_changeStateToSaved());
 		addMenuItem(saved);
-		*/
+		
 		// ユーティリティ
 		MenuItem refresh = new MenuItem(new StringProvider("Refresh") , 0x230010, 0);
 		refresh.setCommand(_state.CMD_refresh());

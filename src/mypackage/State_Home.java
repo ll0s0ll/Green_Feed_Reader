@@ -260,7 +260,7 @@ public class State_Home implements State_Base
 		});
 	}
 	
-	/*
+	
 	public Command CMD_changeStateToAll()
 	{
 		Command out = new Command(new CommandHandler() 
@@ -285,7 +285,7 @@ public class State_Home implements State_Base
 		});
 		return out;
 	} //CMD_changeStateToSaved()
-	*/
+	
 	
 	public Command CMD_logout()
 	{
