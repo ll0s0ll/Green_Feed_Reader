@@ -23,6 +23,7 @@ package mypackage;
 
 import mypackage.MyActivityIndicator;
 
+import net.rim.blackberry.api.sendmenu.SendCommandMenu;
 import net.rim.device.api.ui.Color;
 import net.rim.device.api.ui.Field;
 import net.rim.device.api.ui.Font;
@@ -32,6 +33,7 @@ import net.rim.device.api.ui.MenuItem;
 import net.rim.device.api.ui.Ui;
 import net.rim.device.api.ui.UiApplication;
 import net.rim.device.api.ui.component.LabelField;
+import net.rim.device.api.ui.component.Menu;
 import net.rim.device.api.ui.component.SeparatorField;
 import net.rim.device.api.ui.component.StandardTitleBar;
 import net.rim.device.api.ui.component.table.RichList;
@@ -51,7 +53,6 @@ public class Screen_Stream extends MainScreen
 	
 	private VerticalFieldManager _mainVFM = null;
 	private RichList _richList = null;
-	private MenuItem _get_more_entries = null;
 	
 	
 	public Screen_Stream(State_Stream state)
@@ -98,9 +99,6 @@ public class Screen_Stream extends MainScreen
 		MenuItem unreadonly = new MenuItem(new StringProvider("Toggle Show/Hide Read") , 0x230014, 0);
 		unreadonly.setCommand(_state.CMD_toggleShowAndHideRead());
 		addMenuItem(unreadonly);
-		
-		_get_more_entries = new MenuItem(new StringProvider("Get more entries") , 0x230009, 0);
-		_get_more_entries.setCommand(_state.CMD_getMoreEntries());
 		
 		
 		// 
@@ -153,6 +151,32 @@ public class Screen_Stream extends MainScreen
 		_activity_indicator = new MyActivityIndicator(this);
 		
 	} //StreamScreen()
+	
+	
+	protected void makeMenu(Menu menu, int instance)
+	{
+		super.makeMenu(menu, instance);
+		
+		// Sendメニューを作成
+		try {
+			String text = _state.makeTextForSendMenu(getRowNumberWithFocus());
+			SendCommandMenu _sendCommandMenu = _state.makeSendCommandMenu(text);
+			if(_sendCommandMenu != null)
+			{
+				menu.add(_sendCommandMenu);
+			}
+		} catch (Exception e) {
+			//PASS
+		}
+		
+		// 必要な場合は'Get more entries'メニューを作成
+		if(_state.isAvailableMoreEntries())
+		{
+			MenuItem _menuItem = new MenuItem(new StringProvider("Get more entries") , 0x230009, 0);
+			_menuItem.setCommand(_state.CMD_getMoreEntries());
+			menu.add(_menuItem);
+		}
+	} //makeMenu()
 	
 	
 	public void addRowToRichList(final int index, String title, String feed_title, String update)
@@ -224,6 +248,8 @@ public class Screen_Stream extends MainScreen
 	
 	public void close()
 	{
+		_mainVFM.deleteAll();
+		
 		// スクリーンを閉じず、Homeステイトへ移動する。
 		_state.CMD_changeStateToHome().execute("");
 	} //close()
@@ -253,17 +279,6 @@ public class Screen_Stream extends MainScreen
 		if(total_num_of_rows != 0)
 		{
 			_richList.getModel().removeRowRangeAt(0, total_num_of_rows);
-		}
-	}
-	
-	
-	public void setGetMoreEntriesCMD()
-	{
-		if(_state.isAvailableMoreEntries()) {
-			removeMenuItem(_get_more_entries);
-			addMenuItem(_get_more_entries);
-		} else {
-			removeMenuItem(_get_more_entries);
 		}
 	}
 	

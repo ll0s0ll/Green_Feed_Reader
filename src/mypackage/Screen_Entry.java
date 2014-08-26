@@ -27,6 +27,7 @@ import java.io.UnsupportedEncodingException;
 
 import net.rim.blackberry.api.browser.Browser;
 import net.rim.blackberry.api.browser.BrowserSession;
+import net.rim.blackberry.api.sendmenu.SendCommandMenu;
 import net.rim.device.api.browser.field2.BrowserField;
 import net.rim.device.api.browser.field2.BrowserFieldConfig;
 import net.rim.device.api.browser.field2.BrowserFieldNavigationRequestHandler;
@@ -46,6 +47,7 @@ import net.rim.device.api.ui.MenuItem;
 import net.rim.device.api.ui.Ui;
 import net.rim.device.api.ui.UiApplication;
 import net.rim.device.api.ui.component.LabelField;
+import net.rim.device.api.ui.component.Menu;
 import net.rim.device.api.ui.component.SeparatorField;
 import net.rim.device.api.ui.component.StandardTitleBar;
 import net.rim.device.api.ui.container.MainScreen;
@@ -61,8 +63,6 @@ public class Screen_Entry extends MainScreen
 	private VerticalFieldManager _mainVFM = null;
 	private BrowserField _browserField;
 	private StandardTitleBar _titleBar = null;
-	private MenuItem _displayNextEntry = null;
-	private MenuItem _displayPrevEntry = null;
 	
 	private int index = 0;
 	private String url = "";
@@ -83,14 +83,6 @@ public class Screen_Entry extends MainScreen
 		//
 		// メニューアイテムを作成
 		//
-		_displayNextEntry = new MenuItem(new StringProvider("Next") , 0x210010, 0); 
-		_displayNextEntry.setCommand(_state.CMD_displayNextEntry());
-		//addMenuItem(_displayNextEntry);
-		
-		_displayPrevEntry = new MenuItem(new StringProvider("Prev") , 0x210011, 0); 
-		_displayPrevEntry.setCommand(_state.CMD_displayPrevEntry());
-		//addMenuItem(_displayPrevEntry);
-		
 		/*MenuItem show_instapaper_mobilizer_ver = new MenuItem(new StringProvider("View Website via Instapaper Mobilizer") , 0x220010, 0);
 		show_instapaper_mobilizer_ver.setCommand(new Command(new CommandHandler() 
 		{
@@ -225,8 +217,50 @@ public class Screen_Entry extends MainScreen
 	}
 	
 	
+	protected void makeMenu(Menu menu, int instance)
+	{
+		super.makeMenu(menu, instance);
+		
+		// Sendメニューを作成
+		try {
+			String text = _state.makeTextForSendMenu(index);
+			SendCommandMenu _sendCommandMenu = _state.makeSendCommandMenu(text);
+			if(_sendCommandMenu != null)
+			{
+				menu.add(_sendCommandMenu);
+			}
+		} catch (Exception e) {
+			//PASS
+		}
+		
+		// Next、Prevメニューアイテムを追加
+		if(_state.isFirstEntry(index) && !_state.isOnlyOneEntry(index)) {
+			
+			// 前のエントリーはない。次のエントリーはある。
+			menu.add(makeNextEntryMenuItem());
+			
+		} else if(_state.isLastEntry(index) && !_state.isOnlyOneEntry(index)){
+			
+			// 次のエントリーはない。前のエントリーはある。
+			menu.add(makePrevEntryMenuItem());
+			
+		} else if(_state.isOnlyOneEntry(index)) {
+			// PASS
+		} else {
+			
+			// 次のエントリーも前のエントリーもある。
+			menu.add(makeNextEntryMenuItem());
+			menu.add(makePrevEntryMenuItem());
+		}
+	} //makeMenu()
+	
+	
 	public void close()
 	{
+		_mainVFM.deleteAll();
+		
+		if(_browserField != null) { _browserField = null; }
+		
 		_state.cleanEntryScreen();
 		super.close();
 	}
@@ -246,33 +280,6 @@ public class Screen_Entry extends MainScreen
 			_titleBar.addTitle(title);
 		}
 		
-		// メニューアイテムを追加。
-		if(_state.isFirstEntry(index) && !_state.isOnlyOneEntry(index)) {
-			
-			// 前のエントリーはない。
-			removeMenuItem(_displayPrevEntry);
-			// 次のエントリーはある。
-			removeMenuItem(_displayNextEntry);
-			addMenuItem(_displayNextEntry);
-			
-		} else if(_state.isLastEntry(index) && !_state.isOnlyOneEntry(index)){
-			
-			// 次のエントリーはない。
-			removeMenuItem(_displayNextEntry);
-			// 前のエントリーはある。
-			removeMenuItem(_displayPrevEntry);
-			addMenuItem(_displayPrevEntry);
-			
-		} else if(_state.isOnlyOneEntry(index)) {
-			// PASS
-		} else {
-			// 次のエントリーも前のエントリーもある。
-			removeMenuItem(_displayNextEntry);
-			addMenuItem(_displayNextEntry);
-			
-			removeMenuItem(_displayPrevEntry);
-			addMenuItem(_displayPrevEntry);
-		}
 		
 		// 新しいヘッダを作成して、古いヘッダと入れ替える
 		synchronized (UiApplication.getEventLock())
@@ -402,4 +409,20 @@ public class Screen_Entry extends MainScreen
 		
 		return _vfm;
 	} //makeHeader()
+	
+	
+	private MenuItem makeNextEntryMenuItem()
+	{
+		MenuItem out = new MenuItem(new StringProvider("Next") , 0x230010, 0);
+		out.setCommand(_state.CMD_displayNextEntry());
+		return out;
+	}
+	
+	
+	private MenuItem makePrevEntryMenuItem()
+	{
+		MenuItem out = new MenuItem(new StringProvider("Prev") , 0x230011, 0); 
+		out.setCommand(_state.CMD_displayPrevEntry());
+		return out;
+	}
 }

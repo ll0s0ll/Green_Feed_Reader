@@ -23,6 +23,10 @@ package mypackage;
 
 import java.util.Vector;
 
+import net.rim.blackberry.api.sendmenu.SendCommand;
+import net.rim.blackberry.api.sendmenu.SendCommandContextKeys;
+import net.rim.blackberry.api.sendmenu.SendCommandMenu;
+import net.rim.blackberry.api.sendmenu.SendCommandRepository;
 import net.rim.device.api.command.Command;
 import net.rim.device.api.command.CommandHandler;
 import net.rim.device.api.command.ReadOnlyCommandMetadata;
@@ -34,6 +38,7 @@ import net.rim.device.api.ui.Font;
 import net.rim.device.api.ui.Ui;
 import net.rim.device.api.ui.UiApplication;
 import net.rim.device.api.ui.component.Dialog;
+import net.rim.device.api.util.StringProvider;
 
 import org.json.me.JSONArray;
 import org.json.me.JSONException;
@@ -120,9 +125,6 @@ public class State_Stream implements State_Base, FocusChangeListener
 						// 新しいエントリーをテーブルに追加する。
 						addRowToRichList(entries, 0);
 						
-						// 必要な場合は「さらに読み込む」メニューアイテムを追加。
-						_screen.setGetMoreEntriesCMD();
-						
 						// アクティビティインジケーターを削除
 						_screen.deleteActivityIndicator();
 						
@@ -163,11 +165,17 @@ public class State_Stream implements State_Base, FocusChangeListener
 	
 	public void exit()
 	{
-		//updateStatus("exit()");
-		
 		if(_screen != null)
 		{
 			_feedlyclient.popScreen(_screen);
+			_screen.deleteAll();
+			_screen = null;
+		}
+		
+		if(entries != null)
+		{
+			entries.removeAllElements();
+			entries = null;
 		}
 	}
 	
@@ -198,6 +206,7 @@ public class State_Stream implements State_Base, FocusChangeListener
 	
 	public void cleanEntryScreen()
 	{
+		_entryScreen.deleteAll();
 		_entryScreen = null;
 	}
 	
@@ -269,6 +278,42 @@ public class State_Stream implements State_Base, FocusChangeListener
 	public ConnectionFactory getConnectionFactory()
 	{
 		return _feedlyclient.getConnectionFactory();
+	}
+	
+	
+	public SendCommandMenu makeSendCommandMenu(String text) throws JSONException
+	{
+		JSONObject context = new JSONObject();
+		context.put(SendCommandContextKeys.TEXT, text);
+		//context.put(SendCommandContextKeys.SUBJECT, "Selected text");
+		
+		SendCommandRepository repository = SendCommandRepository.getInstance();
+		SendCommand[] sendCommands = repository.get(SendCommand.TYPE_TEXT, context, true);
+		
+		return new SendCommandMenu(sendCommands, new StringProvider("Send"), 0x130010, 0);
+	} //makeSendCommandMenu()
+	
+	
+	public String makeTextForSendMenu(int num_of_row)
+	{
+		//int num_of_row = _screen.getRowNumberWithFocus();
+		Entry _entry = (Entry)entries.elementAt(num_of_row);
+		
+		String out = "";
+		// エントリーのタイトル
+		out += _entry.getTitle();
+		
+		// フィードのタイトル
+		out +=  " / " + _entry.getOriginTitle();
+		
+		// エントリーのURL
+		if(!_entry.getAlternateHref().equals("")) {
+			out += " " + _entry.getAlternateHref();
+		} else if(!_entry. getOriginId().equals("")) {
+			out += " " + _entry.getOriginId();
+		}
+		
+		return out;
 	}
 	
 	
@@ -516,11 +561,9 @@ public class State_Stream implements State_Base, FocusChangeListener
 		// 追加のエントリーを取得
 		try {
 			// 既存エントリー数を取得
-			//int start_index = items_jsonA.length();
 			int start_index = entries.size();
 			
 			// 追加のエントリーを取得
-			//JSONObject extent_source = getStream(continuation);
 			JSONObject stream_jsonO = getStream(continuation);
 			
 			// ストリームのcontinuationを保存
@@ -540,9 +583,6 @@ public class State_Stream implements State_Base, FocusChangeListener
 			
 			// 新しいエントリーをテーブルに追加する。
 			addRowToRichList(extent_entries, start_index);
-			
-			// 必要な場合は「さらに読み込む」メニューアイテムを追加。
-			_screen.setGetMoreEntriesCMD();
 			
 		} catch (final Exception e) {
 			
@@ -623,7 +663,6 @@ public class State_Stream implements State_Base, FocusChangeListener
 				Vector ids = new Vector();
 				
 				// 対象のエントリー数を取得
-				//int num_items = items_jsonA.length();
 				int num_items = entries.size();
 				
 				try {
@@ -879,9 +918,6 @@ public class State_Stream implements State_Base, FocusChangeListener
 			
 			// 新しいエントリーをテーブルに追加する。
 			addRowToRichList(entries, 0);
-			
-			// 必要な場合は「さらに読み込む」メニューアイテムを追加。
-			_screen.setGetMoreEntriesCMD();
 			
 		} catch (final Exception e) {
 			
