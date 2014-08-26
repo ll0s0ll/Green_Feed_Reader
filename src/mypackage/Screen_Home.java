@@ -31,6 +31,7 @@ import net.rim.device.api.ui.MenuItem;
 import net.rim.device.api.ui.Ui;
 import net.rim.device.api.ui.UiApplication;
 import net.rim.device.api.ui.XYEdges;
+import net.rim.device.api.ui.component.Dialog;
 import net.rim.device.api.ui.component.LabelField;
 import net.rim.device.api.ui.component.StandardTitleBar;
 import net.rim.device.api.ui.component.table.RichList;
@@ -251,6 +252,15 @@ public class Screen_Home extends MainScreen
 	
 	public void close()
 	{
+		int select = Dialog.ask(Dialog.D_OK_CANCEL, "Do you really want to exit?", Dialog.NO);
+		
+		if(select == Dialog.NO)
+		{
+			return;
+		}
+		
+		_mainVFM.deleteAll();
+		
 		_state.close();
 		//super.close();
 	}
