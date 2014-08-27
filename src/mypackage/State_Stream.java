@@ -672,13 +672,20 @@ public class State_Stream implements State_Base, FocusChangeListener
 					// エントリーごとに処理する
 					for(int i=0; i<num_items; i++)
 					{
-						// エントリーを既読にする。
 						Entry _entry = (Entry)entries.elementAt(i);
-						_entry.makeAsRead();
 						
+						// すでに既読の場合はスキップ
+						if(!_entry.isUnread()) { continue; }
+						
+						// エントリーを既読にする
+						_entry.makeAsRead();
+							
 						// APIに投げるエントリーidをまとめる。
 						ids.addElement(_entry.getId());
 					}
+					
+					// 未読にするエントリーがない場合はリターン
+					if(ids.size() == 0) { return; }
 					
 					// 表示を更新する。
 					_screen.refreshRichList();
