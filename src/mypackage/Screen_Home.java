@@ -84,11 +84,15 @@ public class Screen_Home extends MainScreen
 		refresh.setCommand(_state.CMD_refresh());
 		addMenuItem(refresh);
 		
-		MenuItem reload = new MenuItem(new StringProvider("Reload") , 0x230011, 0);
+		MenuItem toggleShowAndHideFeeds = new MenuItem(new StringProvider("Toggle Show/Hide Feeds") , 0x230011, 0);
+		toggleShowAndHideFeeds.setCommand(_state.CMD_toggleShowAndHideFeeds());
+		addMenuItem(toggleShowAndHideFeeds);
+		
+		MenuItem reload = new MenuItem(new StringProvider("Reload") , 0x230012, 0);
 		reload.setCommand(_state.CMD_reload());
 		addMenuItem(reload);
 		
-		MenuItem logout = new MenuItem(new StringProvider("Logout") , 0x230012, 0);
+		MenuItem logout = new MenuItem(new StringProvider("Logout") , 0x230013, 0);
 		logout.setCommand(_state.CMD_logout());
 		addMenuItem(logout);
 		
@@ -108,6 +112,13 @@ public class Screen_Home extends MainScreen
 			{
 				switch(ch)
 				{
+					// ALLカテゴリを表示
+					case 'a':
+					{
+						_state.CMD_changeStateToAll().execute("");
+						break;
+					}
+					
 					// 最後下部のカテゴリにフォーカスする
 					case 'b':
 					{
@@ -150,6 +161,13 @@ public class Screen_Home extends MainScreen
 					case 'r':
 						_state.CMD_refresh().execute("");
 						break;
+						
+					// Savedカテゴリを表示
+					case 's':
+					{
+						_state.CMD_changeStateToSaved().execute("");
+						break;
+					}
 						
 					// 最後上部のカテゴリにフォーカスする
 					case 't':
