@@ -238,16 +238,6 @@ public class State_Home implements State_Base
 		if(_screen != null)
 		{
 			_feedlyclient.popScreen(_screen);
-			_screen = null;
-		}
-		
-		if(subscriptions != null) { subscriptions = null; }
-		if(subscriptions_index != null) { subscriptions_index = null; }
-		
-		if(categories != null)
-		{
-			categories.clear();
-			categories = null;
 		}
 	}
 	
@@ -261,6 +251,15 @@ public class State_Home implements State_Base
 	
 	public void close()
 	{
+		if(subscriptions != null) { subscriptions = null; }
+		if(subscriptions_index != null) { subscriptions_index = null; }
+		
+		if(categories != null)
+		{
+			categories.clear();
+			categories = null;
+		}
+		
 		_feedlyclient.quitApp();
 	}
 	
