@@ -33,7 +33,6 @@ import net.rim.device.api.ui.UiApplication;
 import net.rim.device.api.ui.XYEdges;
 import net.rim.device.api.ui.component.Dialog;
 import net.rim.device.api.ui.component.LabelField;
-import net.rim.device.api.ui.component.Menu;
 import net.rim.device.api.ui.component.StandardTitleBar;
 import net.rim.device.api.ui.component.table.RichList;
 import net.rim.device.api.ui.component.table.TableController;
@@ -68,9 +67,37 @@ public class Screen_Home extends MainScreen
 		setTitleBar(_titleBar);
 		
 		//
+		// メニューアイテムを作成
+		//
+		// ステイト変更コマンド
+		/*
+		MenuItem all = new MenuItem(new StringProvider("ALL") , 0x130010, 0);
+		all.setCommand(_state.CMD_changeStateToAll());
+		addMenuItem(all);
+		
+		MenuItem saved = new MenuItem(new StringProvider("Saved") , 0x130011, 0);
+		saved.setCommand(_state.CMD_changeStateToSaved());
+		addMenuItem(saved);
+		*/
+		// ユーティリティ
+		MenuItem refresh = new MenuItem(new StringProvider("Refresh") , 0x230010, 0);
+		refresh.setCommand(_state.CMD_refresh());
+		addMenuItem(refresh);
+		
+		MenuItem reload = new MenuItem(new StringProvider("Reload") , 0x230011, 0);
+		reload.setCommand(_state.CMD_reload());
+		addMenuItem(reload);
+		
+		MenuItem logout = new MenuItem(new StringProvider("Logout") , 0x230012, 0);
+		logout.setCommand(_state.CMD_logout());
+		addMenuItem(logout);
+		
+		
+		//
 		// アクティビティインジケーターを作成
 		//
 		_activity_indicator = new MyActivityIndicator(this);
+		
 		
 		//
 		// メインマネージャーを作成。
@@ -139,38 +166,6 @@ public class Screen_Home extends MainScreen
 		
 		//Manager mainManager = getMainManager();
 	}
-	
-	
-	protected void makeMenu( Menu menu, int instance )
-	{
-		/*
-		MenuItem all = new MenuItem(new StringProvider("ALL") , 0x130010, 0);
-		all.setCommand(_state.CMD_changeStateToAll());
-		menu.add(all);
-		
-		MenuItem saved = new MenuItem(new StringProvider("Saved") , 0x130011, 0);
-		saved.setCommand(_state.CMD_changeStateToSaved());
-		menu.add(saved);
-		*/
-		
-		MenuItem refresh = new MenuItem(new StringProvider("Refresh") , 0x230010, 0);
-		refresh.setCommand(_state.CMD_refresh());
-		menu.add(refresh);
-		
-		MenuItem toggleShowAndHideFeeds = new MenuItem(new StringProvider("Toggle Show/Hide Feeds") , 0x230011, 0);
-		toggleShowAndHideFeeds.setCommand(_state.CMD_toggleShowAndHideFeeds());
-		menu.add(toggleShowAndHideFeeds);
-		
-		MenuItem reload = new MenuItem(new StringProvider("Reload") , 0x230012, 0);
-		reload.setCommand(_state.CMD_reload());
-		menu.add(reload);
-		
-		MenuItem logout = new MenuItem(new StringProvider("Logout") , 0x230013, 0);
-		logout.setCommand(_state.CMD_logout());
-		menu.add(logout);
-		
-		super.makeMenu(menu, instance);
-	}; //makeMenu()
 	
 	
 	protected void onUiEngineAttached(boolean attached)
