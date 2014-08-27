@@ -108,10 +108,55 @@ public class Screen_Home extends MainScreen
 			{
 				switch(ch)
 				{
-					case  'r':
-						// 未読数表示を更新
+					// 最後下部のカテゴリにフォーカスする
+					case 'b':
+					{
+						_mainVFM.getField(_mainVFM.getFieldCount()-1).setFocus();
+						break;
+					}
+				
+					// Feedを表示するかしないかを切り替え
+					case 'f':
+						_state.CMD_toggleShowAndHideFeeds().execute("");
+						break;
+						
+					// 一つ次のカテゴリにフォーカスする
+					case 'n':
+					{
+						int index = _mainVFM.getFieldWithFocusIndex();
+						index++;
+						
+						if(index < _mainVFM.getFieldCount())
+						{
+							_mainVFM.getField(index).setFocus();
+						}
+						break;
+					}
+					
+					// 一つ前のカテゴリにフォーカスする
+					case 'p':
+					{
+						int index = _mainVFM.getFieldWithFocusIndex();
+						index--;
+						
+						if(index >= 0 )
+						{
+							_mainVFM.getField(index).setFocus();
+						}
+						break;
+					}
+					
+					// 未読数表示を更新
+					case 'r':
 						_state.CMD_refresh().execute("");
 						break;
+						
+					// 最後上部のカテゴリにフォーカスする
+					case 't':
+					{
+						_mainVFM.getField(0).setFocus();
+						break;
+					}
 				}
 				
 				return super.keyChar(ch, status, time);
@@ -303,6 +348,9 @@ public class Screen_Home extends MainScreen
 	
 	public void refreshUnreadAndUpdated(RichList _richList, int rowIndex, int unread, String update)
 	{
+		// 存在しないRowインデックスの場合はリターン
+		if(rowIndex > _richList.getModel().getNumberOfRows()-1) { return; };
+		
 		Object[] obj = _richList.get(rowIndex);
 		VerticalFieldManager _inputed_VFM = (VerticalFieldManager) obj[0];
 		LabelField unread_field = (LabelField) _inputed_VFM.getField(1);
