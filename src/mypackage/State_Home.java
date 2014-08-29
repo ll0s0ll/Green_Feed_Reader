@@ -49,9 +49,7 @@ public class State_Home implements State_Base
 	
 	private Screen_Home _screen = null;
 	
-	private JSONArray subscriptions = null;
-	private Hashtable subscriptions_index = null;
-	private Hashtable categories = null;
+	private Vector categories = null;
 
 	private boolean showfeeds;
 	
@@ -112,7 +110,7 @@ public class State_Home implements State_Base
 		// 購読中のフィードを取得
 		//
 		// すでに取得している場合は、新たに取得しない。
-		if(subscriptions != null) { return; }
+		if(categories != null) { return; }
 		
 		
 		// 有効な通信経路があるか確認
@@ -126,40 +124,21 @@ public class State_Home implements State_Base
 						// アクティビティインジケーターを表示
 						_screen.showActivityIndicator();
 						
-						subscriptions = _feedlyapi.getUserSubscriptions();
+						// 購読中のフィードを取得
+						JSONArray subscriptions = _feedlyapi.getUserSubscriptions();
 						
-						subscriptions_index = makeIndex();
-						
+						// フィードをカテゴリ分けする
 						categories = doCategorize(subscriptions);
 						
-						//
-						// エントリーをスクリーンに追加。
-						//
-						for(Enumeration e = categories.keys(); e.hasMoreElements();)
+						// フィードをスクリーンに追加。
+						for(Enumeration e = categories.elements(); e.hasMoreElements();)
 						{
-							String category_name = (String) e.nextElement();
-							
-							// Uncategorizedカテゴリは飛ばして、後で追加する。
-							if(category_name.equals("uncategorized")) { continue; }
-							
-							Category tmp_category = (Category)categories.get(category_name);
-							tmp_category.makeIndex();
+							Category tmp_category = (Category)e.nextElement();
 							tmp_category.doAddCategoryRichList();
 							tmp_category.doAddCategoryRow();
 						}
 						
-						// 購読中のストリームがない場合はリターン
-						if(subscriptions.length() == 0) { return; };
-							
-						// Uncategorizedカテゴリのエントリーを追加する。
-						Category tmp_uncategorized = (Category)categories.get("uncategorized");
-						tmp_uncategorized.makeIndex();
-						tmp_uncategorized.doAddCategoryRichList();
-						tmp_uncategorized.doAddCategoryRow();
-						
-						//
 						// unread、updatedを更新。
-						//
 						refreshUnreadCounts();
 						
 					} catch (Exception e) {
@@ -251,12 +230,9 @@ public class State_Home implements State_Base
 	
 	public void close()
 	{
-		if(subscriptions != null) { subscriptions = null; }
-		if(subscriptions_index != null) { subscriptions_index = null; }
-		
 		if(categories != null)
 		{
-			categories.clear();
+			categories.removeAllElements();
 			categories = null;
 		}
 		
@@ -402,8 +378,7 @@ public class State_Home implements State_Base
 					return;
 				}
 				
-				subscriptions = null;
-				subscriptions_index = null;
+				categories.removeAllElements();
 				categories = null;
 				
 				_screen.deleteAllCategories();
@@ -432,14 +407,15 @@ public class State_Home implements State_Base
 							
 							if(showfeeds) {
 								// 各カテゴリごとにフィードを削除する
-								for(Enumeration e = categories.keys(); e.hasMoreElements();)
+								for(Enumeration e = categories.elements(); e.hasMoreElements();)
 								{
-									String category_name = (String) e.nextElement();
+									Category tmp = (Category)e.nextElement();
+									String category_name = tmp.getCategoryName();
 									
 									// Globalカテゴリは飛ばす
 									if(category_name.equals("Global")) { continue; }
 									
-									((Category)categories.get(category_name)).doDeleteAllFeedsFromRichList();
+									tmp.doDeleteAllFeedsFromRichList();
 								}
 								
 								// フラグ更新
@@ -447,14 +423,15 @@ public class State_Home implements State_Base
 								
 							} else {
 								// 各カテゴリごとにフィードを追加する
-								for(Enumeration e = categories.keys(); e.hasMoreElements();)
+								for(Enumeration e = categories.elements(); e.hasMoreElements();)
 								{
-									String category_name = (String) e.nextElement();
+									Category tmp = (Category)e.nextElement();
+									String category_name = tmp.getCategoryName();
 									
 									// Globalカテゴリは飛ばす
 									if(category_name.equals("Global")) { continue; }
 									
-									((Category)categories.get(category_name)).doAddCategoryRow();
+									tmp.doAddCategoryRow();
 								}
 								
 								// unread、updatedを更新
@@ -481,7 +458,6 @@ public class State_Home implements State_Base
 			//_screen.showActivityIndicator();
 			
 			JSONArray unreadlist = _feedlyapi.getListOfUnreadCounts().getJSONArray("unreadcounts");
-			//_feedlyclient.updateStatus(unreadlist.toString());
 			
 			// idをキーにして、countとupdatedを含んだハッシュテーブルを含む、ハッシュテーブルを作る。
 			Hashtable unreadlist_hash = new Hashtable();
@@ -495,10 +471,10 @@ public class State_Home implements State_Base
 			}
 			
 			// それぞれのカテゴリごとにリフレッシュメソッドを実行
-			for(Enumeration e = categories.keys(); e.hasMoreElements();)
+			for(Enumeration e = categories.elements(); e.hasMoreElements();)
 			{
-				String category_name = (String) e.nextElement();
-				((Category)categories.get(category_name)).refreshUnreadAndUpdated(unreadlist_hash);
+				Category tmp_ctgry = (Category)e.nextElement();
+				tmp_ctgry.refreshUnreadAndUpdated(unreadlist_hash);
 			}
 			
 		} catch (final Exception e) {
@@ -525,103 +501,99 @@ public class State_Home implements State_Base
 	} //updateStatus()
 	
 	
-	private Hashtable doCategorize(JSONArray subscriptions) throws JSONException
+	private Vector doCategorize(JSONArray subscriptions) throws JSONException
 	{
-		if(subscriptions == null) { return new Hashtable(); }
-		
-		Hashtable out = new Hashtable();
-		
+		Vector out = new Vector();
 		
 		// あらかじめGlobalカテゴリーを追加。
-		out.put("Global", new Global("Global"));
+		out.addElement(new Global("Global"));
 		
+		// 取得した購読中フィード一覧に異常がある場合は、Globalのみ追加してリターン
+		if(subscriptions == null) { return out; }
 		
-		// 購読中のストリームがない場合は、Globalのみ追加してリターン
+		// 購読中のフィードがない場合は、Globalのみ追加してリターン
 		if(subscriptions.length() == 0) { return out; }
 		
+		// あらかじめUncategorizedカテゴリーを作成
+		String streamid_uncategorized = "user/" + _feedlyclient.getID() + "/category/global.uncategorized";
+		Category _uncategorized = new Category("Uncategorized", streamid_uncategorized);
 		
-		// あらかじめUncategorizedカテゴリーを追加。
-		Category _category = new Category("Uncategorized");
-		_category.addStramID("user/" + _feedlyclient.getID() + "/category/global.uncategorized");
-		out.put("uncategorized", _category);
-		
+		// 購読中のフィードごとにカテゴリを振り分け
 		for(int i=0; i<subscriptions.length(); i++)
 		{
-			JSONObject feed = subscriptions.getJSONObject(i);
-			JSONArray categorys = feed.getJSONArray("categories");
-			String feedid = feed.getString("id");
+			// フィードの情報を取得
+			JSONObject feed_jsonObject = subscriptions.getJSONObject(i);
+			Feed _feed = new Feed(feed_jsonObject);
+			
+			// フィードのカテゴリ情報を取得
+			JSONArray categorys = feed_jsonObject.getJSONArray("categories");
 			
 			// カテゴリの指定がない場合は、Uncategorizedカテゴリーへ登録する。
 			if(categorys.length() == 0)
 			{
-				((Category)out.get("uncategorized")).addID(feedid);
+				_uncategorized.addFeed(_feed);
+				continue;
 			}
 			
-			// カテゴリ指定を解析
-			for(int j=0; j<categorys.length(); j++)
+			// フィードのカテゴリ指定を解析
+			label: for(int j=0; j<categorys.length(); j++)
 			{
+				// フィードのカテゴリ情報を取得
 				JSONObject category = categorys.getJSONObject(j);
 				String category_name = category.getString("label");
-				String streamid = category.getString("id");
+				String stream_id = category.getString("id");
 				
-				// 該当するカテゴリがない場合は新規作成する。
-				if(out.containsKey(category_name)) {
-					((Category)out.get(category_name)).addID(feedid);
-					((Category)out.get(category_name)).addStramID(streamid);
-				} else {
-					out.put(category_name, new Category(category_name));
-					((Category)out.get(category_name)).addID(feedid);
-					((Category)out.get(category_name)).addStramID(streamid);
+				// 既存のカテゴリを調査
+				for(Enumeration e = out.elements(); e.hasMoreElements();)
+				{
+					// 既存のカテゴリ情報を取得
+					Category _ctgry = (Category)e.nextElement();
+					
+					// 合致するカテゴリがある場合は、それに追加。
+					if(_ctgry.getCategoryName().equals(category_name))
+					{
+						_ctgry.addFeed(_feed);
+						break label;
+					}
 				}
+				
+				// 合致するカテゴリがない場合は、カテゴリを新規作成する。
+				Category _new_category = new Category(category_name, stream_id);
+				_new_category.addFeed(_feed);
+				out.addElement(_new_category);
 			}
+		} //for
+		
+		// 最後にUncategorizedカテゴリーを追加（1つ以上フィードが追加されている場合のみ）
+		if(_uncategorized.getNumOfFeeds() != 0)
+		{
+			out.addElement(_uncategorized);
 		}
 		
 		return out;
 	} //doCategorize()
 	
 	
-	private Hashtable makeIndex() throws JSONException
-	{
-		if(subscriptions == null){ return new Hashtable(); };
-		
-		// idをキーにしたインデックスを作成。
-		Hashtable out = new Hashtable();
-		
-		for(int i=0; i<subscriptions.length(); i++)
-		{
-			JSONObject feed = subscriptions.getJSONObject(i);
-			out.put(feed.getString("id"), new Integer(i));
-		}
-		
-		return out;
-	}
-	
-	
 	private class Category
 	{
 		private Vector ids = null;
-		private Hashtable ids_index = null;
 		private String category_name = "";
 		private String streamID = "";
 		private RichList _list = null;
 		
-		public Category(String category_name)
+		public Category(String category_name, String streamID)
 		{
 			this.category_name = category_name;
+			this.streamID = streamID;
 			
+			// フィード格納用のベクターを作成
 			ids = new Vector();
 		}
 		
 		
-		public void addID(String id)
+		public void addFeed(Feed feed)
 		{
-			ids.addElement(id);
-		}
-		
-		
-		public void addStramID(String streamid)
-		{
-			this.streamID = streamid;
+			ids.addElement(feed);
 		}
 		
 		
@@ -658,94 +630,63 @@ public class State_Home implements State_Base
 		
 		public void doAddCategoryRow()
 		{
-			synchronized (UiApplication.getEventLock()) 
-			{
-				//_list = _screen.addCategory();
-				//_list.setCommand(showStreamScreenCMD());
-				//_screen.addCategoryHeader(_list, this.category_name);
-			}
-			
-			
 			for(Enumeration e = ids.elements(); e.hasMoreElements();)
 			{
-				String id = (String) e.nextElement();
+				Feed feed = (Feed) e.nextElement();
 				
-				JSONObject feed = null;
-				try {
-					feed = subscriptions.getJSONObject(((Integer)subscriptions_index.get(id)).intValue());
-				} catch (JSONException e1) {
-					continue;
-				}
-				
-				String title = "";
-				try {
-					title = feed.getString("title");
-				} catch (JSONException e1) {
-					title = "Untitled";
-				}
-				
+				// とりあえず未読にしておく。あとで更新する。
 				int unread = 0;
 				
-				String update = "";
-				try {
-					update = _feedlyapi.getTime(feed.getLong("updated"));
-				} catch (JSONException e1) {
-					update = "Unknown";
-				}
-					
 				synchronized (UiApplication.getEventLock()) 
 				{
-					_screen.addCategoryRow(_list, title, unread, update);
+					_screen.addCategoryRow(_list, feed.getTitle(), unread, feed.getUpdate());
 				}
 			}
 		} //doAddCategoryRow()
 		
 		
-		public void makeIndex()
+		public String getCategoryName()
 		{
-			// keyはfeedのidで、valueはfeedのidがthis.idsに格納された位置でハッシュテーブルを作る
-			// feedのidをキーにして調べ物ができるようにするため。
-			//
-			// ex.
-			// this.ids[1] = "feed/http://feeds.feedburner.com/design-milk";
-			// out.put("feed/http://feeds.feedburner.com/design-milk", new Integer(1))
-			// ex.
-			// this.ids[3] = "feed/http://5secondrule.typepad.com/my_weblog/atom.xml";
-			// out.put("feed/http://5secondrule.typepad.com/my_weblog/atom.xml", new Integer(3))
+			return category_name;
+		}
+		
+		
+		public int getNumOfFeeds()
+		{
+			return ids.size();
+		}
+		
+		
+		public void refreshUnreadAndUpdated(Hashtable source)
+		{
+			//if(isCollapsed) { return; }
 			
-			ids_index = new Hashtable();
-			
-			for(int i=0; i<this.ids.size(); i++)
+			// カテゴリの情報を更新
+			Hashtable data_category = (Hashtable)source.get(streamID);
+			if(data_category != null)
 			{
-				ids_index.put(ids.elementAt(i), new Integer(i));
+				int count = ((Integer)data_category.get("count")).intValue();
+				_screen.refreshCategoryHeaderUnread(_list, category_name, count);
 			}
-		} //makeIndex()
-		
-		
-		public void refreshUnreadAndUpdated(Hashtable source)// throws Exception
-		{
-			for(Enumeration e = source.keys(); e.hasMoreElements();)
+			
+			
+			// Feedの情報を更新
+			for(int i=0; i<ids.size(); i++)
 			{
-				String id_souce = (String) e.nextElement();
-				Hashtable feed = (Hashtable) source.get(id_souce);
+				Feed feed = (Feed)ids.elementAt(i);
+				Hashtable data = (Hashtable)source.get(feed.getId());
 				
+				// nullの場合は更新情報なしの場合
+				if(data == null) { continue; }
 				
-				int count = ((Integer)feed.get("count")).intValue();
-				long updated_long =  ((Long)feed.get("updated")).longValue();
+				int count = ((Integer)data.get("count")).intValue();
+				long updated_long =  ((Long)data.get("updated")).longValue();
 				String updated_string = _feedlyapi.getTime(updated_long);
 				
-				// フィードの未読数を更新
-				if(ids_index.containsKey(id_souce))
-				{
-					// rowIndexはヘッダ補正のため+1する。
-					int rowIndex = ((Integer)ids_index.get(id_souce)).intValue() + 1;
-					_screen.refreshUnreadAndUpdated(_list, rowIndex, count, updated_string);
-					source.remove(id_souce);
-				} else if(id_souce.equals(streamID)) {
-					// カテゴリの未読件数を更新
-					_screen.refreshCategoryHeaderUnread(_list, category_name, count);
-					source.remove(id_souce);
-				}
+				// rowIndexはヘッダ補正のため+1する。
+				int rowIndex = i+1;
+				
+				_screen.refreshUnreadAndUpdated(_list, rowIndex, count, updated_string);
 			}
 		} //refreshUnreadAndUpdated()
 		
@@ -756,31 +697,22 @@ public class State_Home implements State_Base
 			{
 				public void execute(ReadOnlyCommandMetadata metadata, Object context) 
 				{
-					try {
-						
-						// フォーカス位置を取得
-						int focusrow = _list.getFocusRow();
-						
-						// フォーカス位置が0の場合は、ヘッダにフォーカスした場合はなので、カテゴリを表示させれる。
-						if(focusrow == 0)
-						{
-							_feedlyclient.changeState(new State_Stream(_feedlyclient, streamID, category_name, false));
-							return;
-						}
-						
-						// フォーカスしたフィードのストリームIDを取得（ヘッダ補正のため-1する。）
-						String streamId = (String) ids.elementAt(focusrow-1);
-						
-						// フィードのタイトルを取得
-						int indexATsubscriptions = ((Integer)subscriptions_index.get(streamId)).intValue();
-						String title = subscriptions.getJSONObject(indexATsubscriptions).getString("title");
-						
-						// ステイトをチェンジ
-						_feedlyclient.changeState(new State_Stream(_feedlyclient, streamId, title, false));
-						
-					} catch (JSONException e) {
+					// フォーカス位置を取得
+					int focusrow = _list.getFocusRow();
+					
+					// フォーカス位置が0の場合は、ヘッダにフォーカスした場合はなので、カテゴリを表示させれる。
+					if(focusrow == 0)
+					{
+						_feedlyclient.changeState(new State_Stream(_feedlyclient, streamID, category_name, false));
 						return;
 					}
+					
+					// フォーカスしたフィードを取得（indexはヘッダ補正のため-1する。）
+					Feed _feed = (Feed)ids.elementAt(focusrow-1);
+					
+					// ステイトをチェンジ
+					_feedlyclient.changeState(new State_Stream(_feedlyclient, _feed.getId(), _feed.getTitle(), false));
+					
 				} //execute()
 			});
 			return out;
@@ -788,11 +720,59 @@ public class State_Home implements State_Base
 	}//Category
 	
 	
+	class Feed
+	{
+		private String id = "";
+		private String title = "";
+		private String update = "";
+		
+		
+		public Feed(JSONObject source)
+		{
+			try {
+				this.id = source.getString("id");
+			} catch (JSONException e) {
+				// PASS
+			}
+			
+			// 
+			try {
+				this.title = source.getString("title");
+			} catch (JSONException e) {
+				this.title = "Untitled";
+			}
+			
+			// 
+			try {
+				this.update = _feedlyapi.getTime(source.getLong("updated"));
+			} catch (JSONException e) {
+				this.update = "Unknown";
+			}
+		}
+		
+		
+		public String getId()
+		{
+			return id;
+		}
+		
+		public String getTitle()
+		{
+			return title;
+		}
+		
+		public String getUpdate()
+		{
+			return update;
+		}
+	}
+	
+	
 	private class Global extends Category
 	{
 		public Global(String category_name)
 		{
-			super(category_name);
+			super(category_name, "dummy");
 		}
 		
 		
@@ -834,27 +814,23 @@ public class State_Home implements State_Base
 		} //doAddCategoryRow()
 		
 		
-		public void refreshUnreadAndUpdated(Hashtable source)// throws Exception
+		public void refreshUnreadAndUpdated(Hashtable source)
 		{
-			for(Enumeration e = source.keys(); e.hasMoreElements();)
-			{
-				String id_souce = (String) e.nextElement();
-				Hashtable feed = (Hashtable) source.get(id_souce);
-				
-				
-				int count = ((Integer)feed.get("count")).intValue();
-				long updated_long =  ((Long)feed.get("updated")).longValue();
-				String updated_string = _feedlyapi.getTime(updated_long);
-				
-				
-				if(id_souce.equals("user/" + _feedlyclient.getID() + "/category/global.all")) {
-					_screen.refreshUnreadAndUpdated(super._list, 1, count, updated_string);
-					source.remove(id_souce);
-				}/* else if(id_souce.equals("user/" + _feedlyclient.getID() + "/tag/global.saved")) {
-					_screen.refreshUnreadAndUpdated(super._list, 2, count, updated_string);
-					source.remove(id_souce);
-				}*/
-			}
+			String streamId_all = "user/" + _feedlyclient.getID() + "/category/global.all";
+			Hashtable data  = (Hashtable) source.get(streamId_all);
+			
+			// nullの場合は更新情報なしの場合
+			if(data == null) { return; }
+			
+			int count = ((Integer)data.get("count")).intValue();
+			long updated_long =  ((Long)data.get("updated")).longValue();
+			String updated_string = _feedlyapi.getTime(updated_long);
+			
+			_screen.refreshUnreadAndUpdated(super._list, 1, count, updated_string);
+			
+			//String streamId_saved = "user/" + _feedlyclient.getID() + "/tag/global.saved";
+			//_screen.refreshUnreadAndUpdated(super._list, 2, count, updated_string);
+			
 		} //refreshUnreadAndUpdated()
 		
 		
