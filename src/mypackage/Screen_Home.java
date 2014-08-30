@@ -341,6 +341,25 @@ public class Screen_Home extends MainScreen
 	}
 	
 	
+	public int getRowNumberWithFocus()
+	{
+		return _mainVFM.getFieldWithFocusIndex();
+	}
+	
+	
+	public void setFocusToStartPos()
+	{
+		synchronized (UiApplication.getEventLock()) 
+		{
+			int num = _mainVFM.getFieldCount()-1;
+			for(int i=num; i>=0; i--)
+			{
+				_mainVFM.getField(i).setFocus();
+			}
+		}
+	}
+	
+	
 	public void showActivityIndicator()
 	{
 		_activity_indicator.showActivityIndicator();

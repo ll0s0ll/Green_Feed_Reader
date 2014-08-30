@@ -50,15 +50,11 @@ public class State_Home implements State_Base
 	private Screen_Home _screen = null;
 	
 	private Vector categories = null;
-
-	private boolean showfeeds;
 	
 	public State_Home(FeedlyClient feedlyclient)
 	{
 		this._feedlyclient = feedlyclient;
 		this._feedlyapi = feedlyclient.getFeedlyAPI();
-		
-		this.showfeeds = true;
 		
 		//
 		// スクリーントランジションを設定
@@ -135,8 +131,9 @@ public class State_Home implements State_Base
 						{
 							Category tmp_category = (Category)e.nextElement();
 							tmp_category.doAddCategoryRichList();
-							tmp_category.doAddCategoryRow();
 						}
+						
+						_screen.setFocusToStartPos();
 						
 						// unread、updatedを更新。
 						refreshUnreadCounts();
@@ -403,42 +400,24 @@ public class State_Home implements State_Base
 					{
 						synchronized (Lock.lock)
 						{
+							// フォーカスしているカテゴリのインデックスを取得
+							int index = _screen.getRowNumberWithFocus();
+							
+							// index == 0 はGlobalなので処理しない。
+							if(index == 0) { return; }
+							
 							_screen.showActivityIndicator();
 							
-							if(showfeeds) {
-								// 各カテゴリごとにフィードを削除する
-								for(Enumeration e = categories.elements(); e.hasMoreElements();)
-								{
-									Category tmp = (Category)e.nextElement();
-									String category_name = tmp.getCategoryName();
-									
-									// Globalカテゴリは飛ばす
-									if(category_name.equals("Global")) { continue; }
-									
-									tmp.doDeleteAllFeedsFromRichList();
-								}
-								
-								// フラグ更新
-								showfeeds = false;
-								
-							} else {
-								// 各カテゴリごとにフィードを追加する
-								for(Enumeration e = categories.elements(); e.hasMoreElements();)
-								{
-									Category tmp = (Category)e.nextElement();
-									String category_name = tmp.getCategoryName();
-									
-									// Globalカテゴリは飛ばす
-									if(category_name.equals("Global")) { continue; }
-									
-									tmp.doAddCategoryRow();
-								}
-								
-								// unread、updatedを更新
+							// フォーカスしているカテゴリを取得
+							Category _tmp = (Category)categories.elementAt(index);
+							
+							// リストの開閉を実行
+							_tmp.toggleShowAndHideFeeds();
+							
+							// リストが開いている場合は、unread、updatedを更新
+							if(!_tmp.isCollapsed())
+							{
 								refreshUnreadCounts();
-								
-								// フラグ更新
-								showfeeds = true;
 							}
 							
 							_screen.deleteActivityIndicator();
@@ -463,11 +442,13 @@ public class State_Home implements State_Base
 			Hashtable unreadlist_hash = new Hashtable();
 			for(int i=0; i<unreadlist.length(); i++)
 			{
-				Hashtable tmp = new Hashtable();
-				tmp.put("count", new Integer(unreadlist.getJSONObject(i).getInt("count")));
-				tmp.put("updated", new Long(unreadlist.getJSONObject(i).getLong("updated")));
+				JSONObject source = unreadlist.getJSONObject(i);
 				
-				unreadlist_hash.put(unreadlist.getJSONObject(i).get("id"), tmp);
+				Hashtable tmp = new Hashtable();
+				tmp.put("count", new Integer(source.getInt("count")));
+				tmp.put("updated", new Long(source.getLong("updated")));
+				
+				unreadlist_hash.put(source.get("id"), tmp);
 			}
 			
 			// それぞれのカテゴリごとにリフレッシュメソッドを実行
@@ -516,7 +497,7 @@ public class State_Home implements State_Base
 		
 		// あらかじめUncategorizedカテゴリーを作成
 		String streamid_uncategorized = "user/" + _feedlyclient.getID() + "/category/global.uncategorized";
-		Category _uncategorized = new Category("Uncategorized", streamid_uncategorized);
+		Category _uncategorized = new Category("Uncategorized", streamid_uncategorized, true);
 		
 		// 購読中のフィードごとにカテゴリを振り分け
 		for(int i=0; i<subscriptions.length(); i++)
@@ -558,7 +539,7 @@ public class State_Home implements State_Base
 				}
 				
 				// 合致するカテゴリがない場合は、カテゴリを新規作成する。
-				Category _new_category = new Category(category_name, stream_id);
+				Category _new_category = new Category(category_name, stream_id, true);
 				_new_category.addFeed(_feed);
 				out.addElement(_new_category);
 			}
@@ -580,11 +561,13 @@ public class State_Home implements State_Base
 		private String category_name = "";
 		private String streamID = "";
 		private RichList _list = null;
+		private boolean isCollapsed;
 		
-		public Category(String category_name, String streamID)
+		public Category(String category_name, String streamID, boolean isCollapsed)
 		{
 			this.category_name = category_name;
 			this.streamID = streamID;
+			this.isCollapsed = isCollapsed;
 			
 			// フィード格納用のベクターを作成
 			ids = new Vector();
@@ -625,6 +608,11 @@ public class State_Home implements State_Base
 				_list.setCommand(showStreamScreenCMD());
 				_screen.addCategoryHeader(_list, this.category_name);
 			}
+			
+			if(!isCollapsed)
+			{
+				doAddCategoryRow();
+			}
 		}
 		
 		
@@ -657,10 +645,14 @@ public class State_Home implements State_Base
 		}
 		
 		
+		public boolean isCollapsed()
+		{
+			return isCollapsed;
+		}
+		
+		
 		public void refreshUnreadAndUpdated(Hashtable source)
 		{
-			//if(isCollapsed) { return; }
-			
 			// カテゴリの情報を更新
 			Hashtable data_category = (Hashtable)source.get(streamID);
 			if(data_category != null)
@@ -669,6 +661,8 @@ public class State_Home implements State_Base
 				_screen.refreshCategoryHeaderUnread(_list, category_name, count);
 			}
 			
+			// リストが閉じている場合はフィードの情報は更新しない
+			if(isCollapsed) { return; }
 			
 			// Feedの情報を更新
 			for(int i=0; i<ids.size(); i++)
@@ -689,6 +683,20 @@ public class State_Home implements State_Base
 				_screen.refreshUnreadAndUpdated(_list, rowIndex, count, updated_string);
 			}
 		} //refreshUnreadAndUpdated()
+		
+		
+		public void toggleShowAndHideFeeds()
+		{
+			if(isCollapsed) {
+				// フィードを追加する。
+				doAddCategoryRow();
+				isCollapsed = false;
+			} else {
+				// リストに追加されているフィードを削除する
+				doDeleteAllFeedsFromRichList();
+				isCollapsed = true;
+			}
+		} //toggleShowAndHideFeeds()
 		
 		
 		private Command showStreamScreenCMD()
@@ -772,7 +780,7 @@ public class State_Home implements State_Base
 	{
 		public Global(String category_name)
 		{
-			super(category_name, "dummy");
+			super(category_name, "dummy", false);
 		}
 		
 		
@@ -783,6 +791,11 @@ public class State_Home implements State_Base
 				super._list = _screen.addCategory();
 				super._list.setCommand(showStreamScreenCMD());
 				_screen.addCategoryHeader(super._list, super.category_name);
+			}
+			
+			if(!super.isCollapsed)
+			{
+				doAddCategoryRow();
 			}
 		}
 		
@@ -832,6 +845,12 @@ public class State_Home implements State_Base
 			//_screen.refreshUnreadAndUpdated(super._list, 2, count, updated_string);
 			
 		} //refreshUnreadAndUpdated()
+		
+		
+		public void toggleShowAndHideFeeds()
+		{
+			// PASS
+		} //toggleShowAndHideFeeds()
 		
 		
 		private Command showStreamScreenCMD()
