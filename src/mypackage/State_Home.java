@@ -22,7 +22,6 @@
 package mypackage;
 
 import java.util.Enumeration;
-import java.util.Hashtable;
 import java.util.Vector;
 
 import org.json.me.JSONArray;
@@ -438,26 +437,20 @@ public class State_Home implements State_Base
 			
 			JSONArray unreadlist = _feedlyapi.getListOfUnreadCounts().getJSONArray("unreadcounts");
 			
-			// idをキーにして、countとupdatedを含んだハッシュテーブルを含む、ハッシュテーブルを作る。
-			Hashtable unreadlist_hash = new Hashtable();
 			for(int i=0; i<unreadlist.length(); i++)
 			{
 				JSONObject source = unreadlist.getJSONObject(i);
+				String id = source.getString("id");
+				int count = source.getInt("count");
+				String updated =  _feedlyapi.getTime(source.getLong("updated"));
 				
-				Hashtable tmp = new Hashtable();
-				tmp.put("count", new Integer(source.getInt("count")));
-				tmp.put("updated", new Long(source.getLong("updated")));
-				
-				unreadlist_hash.put(source.get("id"), tmp);
+				// それぞれのカテゴリごとにリフレッシュメソッドを実行
+				for(Enumeration e = categories.elements(); e.hasMoreElements();)
+				{
+					Category category = (Category)e.nextElement();
+					category.refreshUnreadAndUpdated(id, count, updated);
+				}
 			}
-			
-			// それぞれのカテゴリごとにリフレッシュメソッドを実行
-			for(Enumeration e = categories.elements(); e.hasMoreElements();)
-			{
-				Category tmp_ctgry = (Category)e.nextElement();
-				tmp_ctgry.refreshUnreadAndUpdated(unreadlist_hash);
-			}
-			
 		} catch (final Exception e) {
 			// エラーをロギング
 			updateStatus("refreshUnreadCounts() " + e.toString());
@@ -651,36 +644,32 @@ public class State_Home implements State_Base
 		}
 		
 		
-		public void refreshUnreadAndUpdated(Hashtable source)
+		public void refreshUnreadAndUpdated(String id, int num_unread, String updated)
 		{
-			// カテゴリの情報を更新
-			Hashtable data_category = (Hashtable)source.get(streamID);
-			if(data_category != null)
+			// IDが合致する場合、カテゴリの情報を更新
+			if(id.equals(streamID))
 			{
-				int count = ((Integer)data_category.get("count")).intValue();
-				_screen.refreshCategoryHeaderUnread(_list, category_name, count);
+				_screen.refreshCategoryHeaderUnread(_list, category_name, num_unread);
+				return;
 			}
 			
 			// リストが閉じている場合はフィードの情報は更新しない
 			if(isCollapsed) { return; }
 			
-			// Feedの情報を更新
+			// IDが合致する場合、Feedの情報を更新
 			for(int i=0; i<ids.size(); i++)
 			{
 				Feed feed = (Feed)ids.elementAt(i);
-				Hashtable data = (Hashtable)source.get(feed.getId());
 				
-				// nullの場合は更新情報なしの場合
-				if(data == null) { continue; }
-				
-				int count = ((Integer)data.get("count")).intValue();
-				long updated_long =  ((Long)data.get("updated")).longValue();
-				String updated_string = _feedlyapi.getTime(updated_long);
-				
-				// rowIndexはヘッダ補正のため+1する。
-				int rowIndex = i+1;
-				
-				_screen.refreshUnreadAndUpdated(_list, rowIndex, count, updated_string);
+				if(id.equals(feed.getId()))
+				{
+					// rowIndexはヘッダ補正のため+1する。
+					int rowIndex = i+1;
+					
+					_screen.refreshUnreadAndUpdated(_list, rowIndex, num_unread, updated);
+					
+					return;
+				}
 			}
 		} //refreshUnreadAndUpdated()
 		
@@ -827,19 +816,14 @@ public class State_Home implements State_Base
 		} //doAddCategoryRow()
 		
 		
-		public void refreshUnreadAndUpdated(Hashtable source)
+		public void refreshUnreadAndUpdated(String id, int num_unread, String updated)
 		{
 			String streamId_all = "user/" + _feedlyclient.getID() + "/category/global.all";
-			Hashtable data  = (Hashtable) source.get(streamId_all);
 			
-			// nullの場合は更新情報なしの場合
-			if(data == null) { return; }
-			
-			int count = ((Integer)data.get("count")).intValue();
-			long updated_long =  ((Long)data.get("updated")).longValue();
-			String updated_string = _feedlyapi.getTime(updated_long);
-			
-			_screen.refreshUnreadAndUpdated(super._list, 1, count, updated_string);
+			if(id.equals(streamId_all))
+			{
+				_screen.refreshUnreadAndUpdated(super._list, 1, num_unread, updated);
+			}
 			
 			//String streamId_saved = "user/" + _feedlyclient.getID() + "/tag/global.saved";
 			//_screen.refreshUnreadAndUpdated(super._list, 2, count, updated_string);
