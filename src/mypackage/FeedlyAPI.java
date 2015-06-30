@@ -111,10 +111,12 @@ public class FeedlyAPI
 			try {
 				return new JSONObject(doPostNOCheck(getEndpoint("/v3/auth/token"), body));
 			} catch (IOException e) {
-				continue;
+				// DO NOTHING
 			} catch (Exception e) {
-				continue;
+				// DO NOTHING
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::getAccessToken()1");
 	}
@@ -145,10 +147,12 @@ public class FeedlyAPI
 			try {
 				return new JSONObject(doPostNOCheck(getEndpoint("/v3/auth/token"), body));
 			} catch (IOException e) {
-				continue;
+				// DO NOTHING
 			} catch (Exception e) {
-				continue;
+				// DO NOTHING
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::refreshAccessToken()1");
 	} //refreshAccessToken()
@@ -179,10 +183,12 @@ public class FeedlyAPI
 			try {
 				return new JSONObject(doPost(getEndpoint("/v3/auth/token"), body));
 			} catch (IOException e) {
-				continue;
+				// DO NOTHING
 			} catch (Exception e) {
-				continue;
+				// DO NOTHING
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::revokeRefreshToken()1");
 	}
@@ -219,10 +225,12 @@ public class FeedlyAPI
 			try {
 				return new JSONObject(doGet(getEndpoint("/v3/markers/counts")));
 			} catch (IOException e) {
-				continue;
+				// DO NOTHING
 			} catch (Exception e) {
-				continue;
+				// DO NOTHING
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::getListOfUnreadCounts()");
 	}
@@ -255,10 +263,12 @@ public class FeedlyAPI
 				doPost(getEndpoint("/v3/markers"), body);
 				return;
 			} catch (IOException e) {
-				continue;
+				// DO NOTHING
 			} catch (Exception e) {
-				continue;
+				// DO NOTHING
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::markOneOrMultipleArticlesAsRead()2");
 	}
@@ -291,10 +301,12 @@ public class FeedlyAPI
 				doPost(getEndpoint("/v3/markers"), json);
 				return;
 			} catch (IOException e) {
-				continue;
+				// DO NOTHING
 			} catch (Exception e) {
-				continue;
+				// DO NOTHING
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::keepOneOrMultipleArticlesAsUnread()2");
 	}
@@ -329,12 +341,14 @@ public class FeedlyAPI
 				JSONObject out = new JSONObject(raw);
 				return out;
 			} catch (JSONException e) {
-				continue;
+				// DO NOTHING
 			} catch (IOException e) {
-				continue;
+				// DO NOTHING
 			} catch (Exception e) {
-				continue;
+				// DO NOTHING
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::getTheContentOfaStream()");
 	}
@@ -358,14 +372,13 @@ public class FeedlyAPI
 				return new JSONArray(doGet(getEndpoint("/v3/subscriptions")));
 			} catch (JSONException e) {
 				error += "\n->" + e.toString();
-				continue;
 			} catch (IOException e) {
 				error += "\n->" + e.toString();
-				continue;
 			} catch (Exception e) {
 				error += "\n->" + e.toString();
-				continue;
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::getUserSubscriptions()" + error);
 	}
@@ -386,10 +399,12 @@ public class FeedlyAPI
 			try {
 				return new JSONArray(doGet(getEndpoint("/v3/tags")));
 			} catch (IOException e) {
-				continue;
+				// DO NOTHING
 			} catch (Exception e) {
-				continue;
+				// DO NOTHING
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::getListOfUnreadCounts()");
 	}*/
@@ -419,10 +434,12 @@ public class FeedlyAPI
 				doPut(url, body);
 				return;
 			} catch (IOException e) {
-				continue;
+				// DO NOTHING
 			} catch (Exception e) {
-				continue;
+				// DO NOTHING
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::tagEntry()1");
 	}
@@ -460,10 +477,12 @@ public class FeedlyAPI
 				doPut(url, json);
 				return;
 			} catch (IOException e) {
-				continue;
+				// DO NOTHING
 			} catch (Exception e) {
-				continue;
+				// DO NOTHING
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::tagMultipleEntries()2");
 	}*/
@@ -511,10 +530,12 @@ public class FeedlyAPI
 				doDelete(url);
 				return;
 			} catch (IOException e) {
-				continue;
+				// DO NOTHING
 			} catch (Exception e) {
-				continue;
+				// DO NOTHING
 			}
+			
+			Thread.sleep(1000);
 		}
 		throw new Exception("FeedlyAPI::untagMultipleEntries()1");
 	}
