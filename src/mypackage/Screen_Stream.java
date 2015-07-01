@@ -32,6 +32,7 @@ import net.rim.device.api.ui.Manager;
 import net.rim.device.api.ui.MenuItem;
 import net.rim.device.api.ui.Ui;
 import net.rim.device.api.ui.UiApplication;
+import net.rim.device.api.ui.component.ButtonField;
 import net.rim.device.api.ui.component.LabelField;
 import net.rim.device.api.ui.component.Menu;
 import net.rim.device.api.ui.component.SeparatorField;
@@ -54,6 +55,7 @@ public class Screen_Stream extends MainScreen
 	private VerticalFieldManager _mainVFM = null;
 	private RichList _richList = null;
 	
+	private ButtonField _buttonField_markAllAsRead = null;
 	
 	public Screen_Stream(State_Stream state)
 	{
@@ -150,6 +152,11 @@ public class Screen_Stream extends MainScreen
 		// アクティビティインジケーターを作成
 		_activity_indicator = new MyActivityIndicator(this);
 		
+		// すべて既読ボタンを作成。
+		_buttonField_markAllAsRead = new ButtonField("Mark all as read", Field.FIELD_HCENTER | ButtonField.NEVER_DIRTY | ButtonField.CONSUME_CLICK);
+		_buttonField_markAllAsRead.setCommand(_state.CMD_makeAllEntriesAsRead());
+		_buttonField_markAllAsRead.setMargin(20, 0, 20, 0);
+		
 	} //StreamScreen()
 	
 	
@@ -177,6 +184,16 @@ public class Screen_Stream extends MainScreen
 			menu.add(_menuItem);
 		}
 	} //makeMenu()
+	
+	
+	public void addMarkAllAsReadButton()
+	{
+		try {
+			_mainVFM.add(_buttonField_markAllAsRead);
+		} catch (IllegalStateException e) {
+			// DO NOTHING（もう追加されていれば、それで良い）
+		}
+	} //addMarkAllAsReadButtonToMainVFM()
 	
 	
 	public void addRowToRichList(final int index, String title, String feed_title, String update)
@@ -279,6 +296,22 @@ public class Screen_Stream extends MainScreen
 		if(total_num_of_rows != 0)
 		{
 			_richList.getModel().removeRowRangeAt(0, total_num_of_rows);
+		}
+		
+		// すべて既読ボタンも取り除く
+		removeMarkAllAsReadButton();
+	}
+	
+	
+	public void removeMarkAllAsReadButton()
+	{
+		try {
+			synchronized (UiApplication.getEventLock()) 
+			{
+				_mainVFM.delete(_buttonField_markAllAsRead);
+			}
+		} catch (IllegalArgumentException e) {
+			// 存在しなければ、それでよい。
 		}
 	}
 	

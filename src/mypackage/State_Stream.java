@@ -350,6 +350,16 @@ public class State_Stream implements State_Base, FocusChangeListener
 				_screen.addRowToRichList(i+start_index, title, origin_title, published);
 			}
 		}
+		
+		// ‚·‚×‚ÄŠù“Çƒ{ƒ^ƒ“’Ç‰Á
+		if(!isAvailableMoreEntries())
+		{
+			synchronized (UiApplication.getEventLock()) 
+			{
+				_screen.addMarkAllAsReadButton();
+			}
+		}
+		
 	} //addRowToRichList()
 	
 	
