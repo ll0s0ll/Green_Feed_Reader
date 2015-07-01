@@ -328,13 +328,15 @@ public class State_Stream implements State_Base, FocusChangeListener
 		// エントリー数が0の場合はダイアログを出してリターン
 		if(entries.size() == 0)
 		{
-			UiApplication.getUiApplication().invokeLater(new Runnable()
+			//_screen.addNoEntriesMessage();
+			
+			/*UiApplication.getUiApplication().invokeLater(new Runnable()
 			{
 				public void run()
 				{
 					Dialog.alert("No entries found.");
 				}
-			});
+			});*/
 			return;
 		}
 		
@@ -1326,7 +1328,7 @@ public class State_Stream implements State_Base, FocusChangeListener
 		{
 			public void execute(ReadOnlyCommandMetadata metadata, Object context)
 			{
-				if(!isAvailableOneOrMoreEntries())
+				/*if(!isAvailableOneOrMoreEntries())
 				{
 					UiApplication.getUiApplication().invokeLater(new Runnable()
 					{
@@ -1336,9 +1338,12 @@ public class State_Stream implements State_Base, FocusChangeListener
 						}
 					});
 					return;
-				}
+				}*/
 				
-				makeAllEntriesAsRead();
+				if(isAvailableOneOrMoreEntries())
+				{
+					makeAllEntriesAsRead();
+				}
 			}
 		});
 		return out;
@@ -1370,7 +1375,7 @@ public class State_Stream implements State_Base, FocusChangeListener
 		{
 			public void execute(ReadOnlyCommandMetadata metadata, Object context) 
 			{
-				if(!isAvailableOneOrMoreEntries())
+				/*if(!isAvailableOneOrMoreEntries())
 				{
 					UiApplication.getUiApplication().invokeLater(new Runnable()
 					{
@@ -1380,9 +1385,12 @@ public class State_Stream implements State_Base, FocusChangeListener
 						}
 					});
 					return;
-				}
+				}*/
 				
-				toggleUnreadAndRead( _screen.getRowNumberWithFocus() );
+				if(isAvailableOneOrMoreEntries())
+				{
+					toggleUnreadAndRead( _screen.getRowNumberWithFocus() );
+				}
 			}
 		});
 		return out;
@@ -1395,7 +1403,7 @@ public class State_Stream implements State_Base, FocusChangeListener
 		{
 			public void execute(ReadOnlyCommandMetadata metadata, Object context)
 			{
-				if(!isAvailableOneOrMoreEntries())
+				/*if(!isAvailableOneOrMoreEntries())
 				{
 					UiApplication.getUiApplication().invokeLater(new Runnable()
 					{
@@ -1405,9 +1413,12 @@ public class State_Stream implements State_Base, FocusChangeListener
 						}
 					});
 					return;
-				}
+				}*/
 				
-				toggleUnsavedAndSaved( _screen.getRowNumberWithFocus() );
+				if(isAvailableOneOrMoreEntries())
+				{
+					toggleUnsavedAndSaved( _screen.getRowNumberWithFocus() );
+				}
 			}
 		});
 		return out;
