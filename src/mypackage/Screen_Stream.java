@@ -110,6 +110,13 @@ public class Screen_Stream extends MainScreen
 			{
 				switch(ch)
 				{
+					case 'a':
+					{
+						// すべて既読にする
+						_state.CMD_makeAllEntriesAsRead().execute("");
+						break;
+					}
+			
 					//case  'b':
 						// 一番最後のエントリーにフォーカスしたい。
 						// いろいろ試したが、方法わからず。
